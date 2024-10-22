@@ -1,1 +1,7 @@
+.Rproj.user
+*Rproj*
+0_get_wardrates.R
+Archive*
 
+analysis/pieces/*
+output/*
