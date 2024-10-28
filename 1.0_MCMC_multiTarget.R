@@ -65,6 +65,9 @@ if(total_formmin > 0 & sum(this_ward_intervals$break_minutes) > 0){
   
   phi_lo = quantile(phi_post, 0.025)
   phi_hi = quantile(phi_post, 0.975)
+  
+  D = -2*lik_post
+  DIC = 0.5*var(D) + mean(D)
 
   # random sample
   phi_vec100 = sample(phi_post, size = 100, replace = F)
@@ -80,6 +83,8 @@ if(total_formmin > 0 & sum(this_ward_intervals$break_minutes) > 0){
   phi_hi = NA_real_
   
   phi_vec100 = rep(NA_real_, 100)
+  
+  DIC = NA_real_
 }
 
 

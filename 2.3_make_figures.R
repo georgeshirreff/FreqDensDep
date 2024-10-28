@@ -53,6 +53,8 @@ slope_model_colours = c(`.data` = "black",
 greek = "phi"
 
 toPlot_N_chosenModels_Slope <- ward_intervals_loglik %>%
+  filter((this_status == "ALL" & that_status == "ALL") | 
+           ((this_status %in% c("PA", "PE")) & (that_status == "PA"))) %>% 
   # left_join(chosen_model) %>%
   left_join(rbind(chosen_model %>% mutate(this_status = "ALL", that_status = "ALL")
                   , chosen_model_thisthat)) %>%
@@ -93,7 +95,7 @@ plot_N_chosenModels_Slope = toPlot_N_chosenModels_Slope %>%
   geom_point(aes(y = contactIntensity, colour = factor(".data", levels = names(slope_model_colours))), alpha = 0.3, size = 0.3) + 
   # geom_point(aes(x = mean_Nthat, y = obs_intensity, colour = ".data"), alpha = 1) +
   # geom_errorbar(aes(x = mean_Nthat, ymin = obs_intensity - sqrt(var_intensity), ymax = obs_intensity + sqrt(var_intensity), colour = ".data"), alpha = 1) +
-  geom_line(aes(y = rate_chosenmodel, colour = model_label), linewidth = 1.5) +
+  geom_line(aes(y = rate_chosenmodel, colour = model_label), linewidth = 1.5, show.legend = T) +
   geom_text(aes(x = Inf, y = 3, label = param_label), parse = T, hjust = 1.0, vjust = 1) +
   scale_colour_manual(drop = F, values = slope_model_colours) +
   # geom_crossbar(aes(x = mean_Nthat, xmin = low_Nthat, xmax = high_Nthat, y = mean_break_rate, colour = "break"), size=1) + 
@@ -121,7 +123,7 @@ for(this_stat in c("PA", "PE")){
       geom_point(aes(y = contactIntensity, colour = factor(".data", levels = names(slope_model_colours))), alpha = 0.3, size = 0.3) + 
       # geom_point(aes(x = mean_Nthat, y = obs_intensity, colour = ".data"), alpha = 1) +
       # geom_errorbar(aes(x = mean_Nthat, ymin = obs_intensity - sqrt(var_intensity), ymax = obs_intensity + sqrt(var_intensity), colour = ".data"), alpha = 1) +
-      geom_line(aes(y = rate_chosenmodel, colour = model_label), linewidth = 1.5) +
+      geom_line(aes(y = rate_chosenmodel, colour = model_label), linewidth = 1.5, show.legend = T) +
       geom_text(aes(x = Inf, y = 3, label = param_label), parse = T, hjust = 1.0, vjust = 1) +
       scale_colour_manual(drop = F, values = slope_model_colours) + 
       facet_nested_wrap(.~newID + Period
@@ -331,7 +333,7 @@ grade_plot %>%
   mutate(thisthat_label = paste0(thisstat_label, ">", thatstat_label)) %>% 
   # filter(this_status %in% c("PA", "PE"), that_status %in% c("PA", "PE")) %>% 
   filter((this_status == "ALL" & that_status == "ALL") |(this_status %in% c("PA", "PE") & that_status %in% c("PA"))) %>% 
-  left_join(ward_rates_loglik %>% 
+  left_join(ward_intervals_loglik %>% 
               group_by(newID, that_status) %>% 
               summarise(mean_Nthat = sum(Nthat*interval_durmin)/sum(interval_durmin))) %>% 
   mutate(mean_Nthat_110 = mean_Nthat*1.1, 

@@ -1,13 +1,18 @@
-# prefix = "ward_nonlinear_bayesIntensity_multiTarget"
-prefix = "ward_nonlinear_bayesIntensity_catHosp"
-prefix = "ward_nonlinear_bayesIntensity_sensAnal"
+library(tidyverse) 
+
+stem = "ward_nonlinear_bayesIntensity_multiTarget"
+n_files = 240
+# stem = "ward_nonlinear_bayesIntensity_catHosp"
+# n_files = 1248
+# stem = "ward_nonlinear_bayesIntensity_sensAnal"
+# n_files = 240
 
 
-files = system(paste0("ls analysis/pieces/", prefix, "*"), intern = T)
+tab <- read_csv(paste0("analysis/pieces/", stem, 1, ".csv"))
 
-res = read_csv(files[1])
-for(f in files[-1]){
-  res = rbind(res, read_csv(f))
+for(i in 2:n_files){
+  print(i)
+  tab <- bind_rows(tab, read_csv(paste0("analysis/pieces/",stem, i, ".csv"), col_types = cols()))
 }
 
-res %>% write_csv(paste0("analysis/", prefix, ".csv"))
+tab %>% write_csv(paste0("analysis/", stem, ".csv"))

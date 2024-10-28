@@ -109,6 +109,8 @@ ward_nonlinear <- tibble(ward_id = this_ward_id
                          , phi_lo
                          , phi_hi
                          
+                         , DIC
+                         
 ) %>% 
   cbind(tibble(s = 1:length(phi_vec100), phi = phi_vec100) %>% 
           pivot_wider(names_prefix = "phi_sample", names_from = "s", values_from = "phi"))
