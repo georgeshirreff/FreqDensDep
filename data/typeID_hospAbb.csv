@@ -1,0 +1,16 @@
+ward_id,newID,hospAbb
+20,Adult emergency #2,LS
+16,Adult emergency #1,EH
+14,Paediatric emergency,NE
+17,Internal medicine,B
+8,Infectious diseases #2,A
+13,Infectious diseases #1,RP
+12,Geriatry #2,EH
+18,Geriatry #1,PB
+19,Surgical ICU,EH
+5,Medical ICU #2,EH
+21,Infectious diseases #3,BP
+9,Pneumology,B
+1,Medical ICU #1,RP
+2,Neonatal ICU,NE
+6,General paediatrics,NE
