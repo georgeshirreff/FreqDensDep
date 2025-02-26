@@ -11,7 +11,7 @@ ward_intervals <- read_csv("data/FreqDens_ward_intervals.csv"
   filter(ward_id != 15)
 
 analysis_index = commandArgs(trailingOnly = T)[1] %>% as.numeric #1-240
-# analysis_index = 2
+# analysis_index = 1
 print(analysis_index)
 
 #### analysis table ####

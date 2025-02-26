@@ -1,5 +1,8 @@
 library(tidyverse) 
 
+# stem = "ward_nonlinear_bayesIntensity_grouped"
+# n_files = 15
+
 stem = "ward_nonlinear_bayesIntensity_multiTarget"
 n_files = 240
 # stem = "ward_nonlinear_bayesIntensity_catHosp"

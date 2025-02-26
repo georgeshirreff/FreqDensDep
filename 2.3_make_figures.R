@@ -38,19 +38,6 @@ chosen_model_catHosp_allthisthat <- read_tsv(paste0("output/dAIC_catHosp_allthis
 
 ### PLOT GRAPHS SHOWING THE BEST MODEL SLOPES ###
 
-# slope_model_colours = c(`.data` = "black", 
-#                   `Non-linear (negative)` = alpha("darkblue", 0.6), 
-#                   `Non-linear (negative) - diurnal` = alpha("darkblue", 1), 
-#                   `Frequency dependence` = alpha("blue", 0.6), 
-#                   `Frequency dependence - diurnal` = alpha("blue", 1), 
-#                   `Non-linear (partial)` = alpha("green", 0.6), 
-#                   `Non-linear (partial) - diurnal` = alpha("green", 1), 
-#                   `Linear density dependence` = alpha("gold", 0.6), 
-#                   `Linear density dependence - diurnal` = alpha("gold", 1), 
-#                   `Non-linear (more than linear)` = alpha("orange", 0.6), 
-#                   `Non-linear (more than linear) - diurnal` = alpha("orange", 1))
-
-
 slope_model_colours = c(`.data` = "black", 
                         `Non-linear (negative)` = "blue4", 
                         `Frequency dependence` = "blue", 
@@ -58,7 +45,30 @@ slope_model_colours = c(`.data` = "black",
                         `Linear density dependence` = "gold", 
                         `Non-linear (more than linear)` = "orange") 
 
+# model_cols = c(`Non-linear (negative)` = "blue4", 
+#                `Frequency dependence` = "blue", 
+#                `Non-linear (partial)` = "green", 
+#                `Linear density dependence` = "gold", 
+#                `Non-linear (more than linear)` = "orange")
+
+
 greek = "phi"
+
+tibble(r = seq(0, 2, by = 0.1)) %>% 
+  mutate(lo = qexp(0.025, rate = 1/r), 
+         hi = qexp(0.975, rate = 1/r), 
+         med = qexp(0.5, rate = 1/r)) %>% 
+  pivot_longer(-r) %>% 
+  ggplot(aes(x = r, y = value, colour = name)) + geom_line() + 
+  geom_abline(intercept = 0, slope = 1)
+  
+qexp2 <- function(p, r){
+  -log(1-p)/r
+}
+
+qexp(0.025, rate = 1/0.1, lower.tail = F)
+
+
 
 toPlot_N_chosenModels_Slope <- ward_intervals_loglik %>% 
   filter((this_status == "ALL" & that_status == "ALL") | 
@@ -103,18 +113,20 @@ toPlot_N_chosenModels_Slope <- ward_intervals_loglik %>%
                                       , ChosenModel == "Constant diurnal" ~ rate_cdiurnal
                                       , ChosenModel == "Linear diurnal" ~ rate_ldiurnal
                                       , ChosenModel == "Non-linear diurnal" ~ rate_ndiurnal)) %>% 
-  mutate(rate_chosenmodel_lo = case_when(ChosenModel == "Constant" ~ rate_constant
+  mutate(rate_chosenmodel_explo = qexp(0.025, rate = 1/rate_chosenmodel), 
+         rate_chosenmodel_exphi = qexp(0.975, rate = 1/rate_chosenmodel)) %>% 
+  mutate(rate_chosenmodel_philo = case_when(ChosenModel == "Constant" ~ rate_constant
                                       , ChosenModel == "Linear" ~ rate_linear
                                       , ChosenModel == "Non-linear" ~ rate_nonlin_lo
                                       , ChosenModel == "Constant diurnal" ~ rate_cdiurnal
                                       , ChosenModel == "Linear diurnal" ~ rate_ldiurnal
-                                      , ChosenModel == "Non-linear diurnal" ~ rate_ndiurnal_lo)) %>% 
-  mutate(rate_chosenmodel_hi = case_when(ChosenModel == "Constant" ~ rate_constant
+                                      , ChosenModel == "Non-linear diurnal" ~ rate_ndiurnal_lo)) %>%
+  mutate(rate_chosenmodel_phihi = case_when(ChosenModel == "Constant" ~ rate_constant
                                       , ChosenModel == "Linear" ~ rate_linear
                                       , ChosenModel == "Non-linear" ~ rate_nonlin_hi
                                       , ChosenModel == "Constant diurnal" ~ rate_cdiurnal
                                       , ChosenModel == "Linear diurnal" ~ rate_ldiurnal
-                                      , ChosenModel == "Non-linear diurnal" ~ rate_ndiurnal_hi)) %>% 
+                                      , ChosenModel == "Non-linear diurnal" ~ rate_ndiurnal_hi)) %>%
   mutate(param_label = case_when(ChosenModel == "Non-linear" ~ paste0(greek, "==", round(phi_nondiurnal, 1))
                                  , ChosenModel == "Non-linear diurnal" ~ paste0(greek, "==", round(phi_diurnal, 1))
                                  , ChosenModel == "Constant" ~ paste0(greek, "==", 0)
@@ -136,7 +148,7 @@ toPlot_N_chosenModels_Slope <- ward_intervals_loglik %>%
   mutate(isDiurnal = ifelse(grepl("diurnal", ChosenModel), "Diurnal", "Non-diurnal"), 
          model_label = gsub(" - diurnal", "", chosen_model_slope)) %>% 
   mutate(model_label = factor(model_label, levels = names(slope_model_colours))) %>% 
-  select(newID, this_status, that_status, Period, Nthat, ChosenModel, model_label, isDiurnal, param_label, rate_chosenmodel, rate_chosenmodel_lo, rate_chosenmodel_hi) %>% 
+  select(newID, this_status, that_status, Period, Nthat, ChosenModel, model_label, isDiurnal, param_label, starts_with("rate_chosenmodel")) %>% 
   filter(rate_chosenmodel <= 1)
 
 
@@ -144,8 +156,8 @@ toPlot_N_chosenModels_Slope <- ward_intervals_loglik %>%
 plot_N_chosenModels_Slope = toPlot_N_chosenModels_Slope %>% 
   filter(this_status == "ALL", that_status == "ALL") %>%
   ggplot(aes(x = Nthat)) + 
+  geom_ribbon(aes(ymin = rate_chosenmodel_explo, ymax = rate_chosenmodel_exphi, fill = model_label), alpha = 0.15, show.legend = F) +
   geom_line(aes(y = rate_chosenmodel, colour = model_label, linetype = isDiurnal), linewidth = 0.5) +
-  geom_ribbon(aes(ymin = rate_chosenmodel_lo, ymax = rate_chosenmodel_hi, fill = model_label), alpha = 0.3, show.legend = F) +
   # geom_point(aes(x = mean_Nthat, y = obs_intensity, colour = ".data"), alpha = 1) +
   # geom_errorbar(aes(x = mean_Nthat, ymin = obs_intensity - sqrt(var_intensity), ymax = obs_intensity + sqrt(var_intensity), colour = ".data"), alpha = 1) +
   # geom_line(aes(y = rate_chosenmodel, colour = model_label), linewidth = 1.0, show.legend = T) +
@@ -177,12 +189,54 @@ ggsave(plot_N_chosenModels_Slope, filename = paste0("output/Fig2 - rates_over_N_
        , width = 35, height = 20, units = "cm", device = "pdf")  
 
 
+plot_N_chosenModels_Slope_phiCI = toPlot_N_chosenModels_Slope %>% 
+  filter(this_status == "ALL", that_status == "ALL") %>%
+  ggplot(aes(x = Nthat)) + 
+  # geom_ribbon(aes(ymin = rate_chosenmodel_explo, ymax = rate_chosenmodel_exphi, fill = model_label), alpha = 0.15, show.legend = F) +
+  geom_line(aes(y = rate_chosenmodel, colour = model_label, linetype = "Best fit"), linewidth = 0.5) +
+  # geom_line(aes(y = rate_chosenmodel_philo, colour = model_label, linetype = "bestFit"), linewidth = 0.05) +
+  # geom_line(aes(y = rate_chosenmodel_phihi, colour = model_label, linetype = "bestFit"), linewidth = 0.05) +
+  geom_line(aes(y = rate_chosenmodel_philo, colour = model_label, linetype = "Lower bound"), linewidth = 0.5) +
+  geom_line(aes(y = rate_chosenmodel_phihi, colour = model_label, linetype = "Upper bound"), linewidth = 0.5) +
+  # geom_point(aes(x = mean_Nthat, y = obs_intensity, colour = ".data"), alpha = 1) +
+  # geom_errorbar(aes(x = mean_Nthat, ymin = obs_intensity - sqrt(var_intensity), ymax = obs_intensity + sqrt(var_intensity), colour = ".data"), alpha = 1) +
+  # geom_line(aes(y = rate_chosenmodel, colour = model_label), linewidth = 1.0, show.legend = T) +
+  # geom_line(aes(y = rate_chosenmodel, colour = model_label, linetype = diurnality), linewidth = 1.0, show.legend = T) +
+  geom_point(data = ward_intervals_loglik %>% 
+               filter(this_status == "ALL", that_status == "ALL"), aes(y = contactIntensity, colour = factor(".data", levels = names(slope_model_colours))), alpha = 0.3, size = 0.3) + 
+  geom_text(data = toPlot_N_chosenModels_Slope %>% 
+              filter(this_status == "ALL", that_status == "ALL") %>% 
+              select(newID, Period, param_label) %>% unique, 
+            aes(x = Inf, y = 3, label = param_label), parse = T, hjust = 1.0, vjust = 1) +
+  scale_colour_manual(drop = F, values = slope_model_colours) +
+  scale_fill_manual(values = slope_model_colours) +
+  scale_linetype_manual(values = c(`Best fit` = "solid", `Lower bound` = "dotdash", `Upper bound` = "longdash")) + 
+  # scale_linetype_manual(values = c(Diurnal = "solid", `Non-diurnal` = "dashed")) + 
+  # geom_crossbar(aes(x = mean_Nthat, xmin = low_Nthat, xmax = high_Nthat, y = mean_break_rate, colour = "break"), size=1) + 
+  facet_nested_wrap(.~newID + Period
+                    # , scales = "free_x"
+                    ,  nrow = 2) +
+  # guides(colour = F) +
+  scale_y_log10() +
+  scale_x_continuous(breaks = c(0, 25, 50, 75, 100), labels = c(0, 25, "", 75, ""), minor_breaks = NULL) + 
+  theme_bw() + 
+  labs(y = "Contact rate", x = "Persons present", colour = "Model", linetype = expression(phi)) + 
+  coord_cartesian(ylim = c(NA, 4))
+
+
+ggsave(plot_N_chosenModels_Slope_phiCI, filename = paste0("output/SuppFig5 - rates_over_N_chosenModels_intensitySlope - phi uncertainty.png")
+       , width = 35, height = 20, units = "cm", dpi = 1000)
+ggsave(plot_N_chosenModels_Slope_phiCI, filename = paste0("output/SuppFig5 - rates_over_N_chosenModels_intensitySlope - phi uncertainty.pdf")
+       , width = 35, height = 20, units = "cm", device = "pdf")  
+
+
 for(this_stat in c("PA", "PE")){
   for(that_stat in c("PA")){
     
     plot_N_chosenModels_Slope_thisthat <- toPlot_N_chosenModels_Slope %>% 
       filter(this_status == this_stat, that_status == that_stat) %>%
       ggplot(aes(x = Nthat)) + 
+      geom_ribbon(aes(ymin = rate_chosenmodel_explo, ymax = rate_chosenmodel_exphi, fill = model_label), alpha = 0.3, show.legend = F) +
       geom_line(aes(x = Nthat, y = rate_chosenmodel, colour = model_label, linetype = isDiurnal), linewidth = 0.5) +
       # geom_point(aes(x = mean_Nthat, y = obs_intensity, colour = ".data"), alpha = 1) +
       # geom_errorbar(aes(x = mean_Nthat, ymin = obs_intensity - sqrt(var_intensity), ymax = obs_intensity + sqrt(var_intensity), colour = ".data"), alpha = 1) +
@@ -196,6 +250,7 @@ for(this_stat in c("PA", "PE")){
                   select(newID, Period, param_label) %>% unique, 
                 aes(x = Inf, y = 3, label = param_label), parse = T, hjust = 1.0, vjust = 1) +
       scale_colour_manual(drop = F, values = slope_model_colours) +
+      scale_fill_manual(values = slope_model_colours) +
       scale_linetype_manual(values = c(Diurnal = "solid", `Non-diurnal` = "dashed")) + 
       # geom_crossbar(aes(x = mean_Nthat, xmin = low_Nthat, xmax = high_Nthat, y = mean_break_rate, colour = "break"), size=1) + 
       facet_nested_wrap(.~newID + Period
@@ -203,7 +258,7 @@ for(this_stat in c("PA", "PE")){
                         ,  nrow = 2) +
       # guides(colour = F) +
       scale_y_log10() +
-      scale_x_continuous(breaks = c(0, 25, 50, 75, 100), labels = c(0, 25, "", 75, ""), minor_breaks = NULL) + 
+      scale_x_continuous(limits = c(0, 50), breaks = c(0, 25, 50), labels = c(0, 25, 50), minor_breaks = NULL) + 
       theme_bw() + 
       labs(y = "Contact rate", x = "Persons present", colour = "Model", linetype = "")
     
@@ -226,7 +281,7 @@ for(this_stat in c("PA", "PE")){
     #   labs(y = "Contact rate", x = "Persons present", colour = "Model")
     
 
-    ggsave(plot_N_chosenModels_Slope_thisthat, filename = paste0("output/SuppFig12 - rates_over_N_chosenModels_intensity_", this_stat, that_stat, ".png")
+    ggsave(plot_N_chosenModels_Slope_thisthat, filename = paste0("output/SuppFig23 - rates_over_N_chosenModels_intensity_", this_stat, that_stat, ".png")
            , width = 35, height = 20, units = "cm", dpi = 1000)    
   }
 }  
@@ -235,11 +290,12 @@ for(this_stat in c("PA", "PE")){
 
 ### NOW PLOT THE PHI VALUES THEMSELVES ###
 
-model_cols = c(`Non-linear (negative)` = "blue4", 
-               `Frequency dependence` = "blue", 
-               `Non-linear (partial)` = "green", 
-               `Linear density dependence` = "gold", 
-               `Non-linear (more than linear)` = "orange")
+# model_cols = c(`Non-linear (negative)` = "blue4", 
+#                `Frequency dependence` = "blue", 
+#                `Non-linear (partial)` = "green", 
+#                `Linear density dependence` = "gold", 
+#                `Non-linear (more than linear)` = "orange")
+model_cols = slope_model_colours[-1]
 
 
 error_bar_width = 0.5
@@ -248,10 +304,11 @@ grade_plot = ward_nonlinear_plottable %>%
   pivot_wider(id_cols = c("newID", "this_status", "that_status"), names_from = "Period", values_from = c("phi_median", "phi_lo", "phi_hi")) %>%
   left_join(rbind(chosen_model %>% mutate(this_status = "ALL", that_status = "ALL")
                   , chosen_model_thisthat)) %>% 
-  left_join(newID_ref %>% select(newID, newID_hospAbb)) %>% 
-  select(-newID) %>% 
-  rename(newID = newID_hospAbb) %>% 
-  mutate(newID = factor(newID, levels = newID_ref$newID_hospAbb)) %>% 
+  # left_join(newID_ref %>% select(newID, newID_hospAbb)) %>% 
+  # select(-newID) %>% 
+  # rename(newID = newID_hospAbb) %>% 
+  # mutate(newID = factor(newID, levels = newID_ref$newID_hospAbb)) %>% 
+  mutate(newID = factor(newID, levels = newID_ref$newID)) %>%
   mutate(Day_median = case_when(grepl("Constant", ChosenModel) ~ 0,
                                 grepl("Linear", ChosenModel) ~ 1,
                                 ChosenModel == "Non-linear diurnal" ~ phi_median_Day,
@@ -296,10 +353,10 @@ grade_plot = ward_nonlinear_plottable %>%
 grade_catHosp_plot = ward_nonlinear_catHosp_plottable %>% 
   pivot_wider(id_cols = c("newID", "this_catHosp", "that_catHosp"), names_from = "Period", values_from = c("phi_median", "phi_lo", "phi_hi")) %>%
   left_join(chosen_model_catHosp_allthisthat) %>% 
-  left_join(newID_ref %>% select(newID, newID_hospAbb)) %>% 
-  select(-newID) %>% 
-  rename(newID = newID_hospAbb) %>% 
-  mutate(newID = factor(newID, levels = newID_ref$newID_hospAbb)) %>% 
+  # left_join(newID_ref %>% select(newID, newID_hospAbb)) %>% 
+  # select(-newID) %>% 
+  # rename(newID = newID_hospAbb) %>% 
+  mutate(newID = factor(newID, levels = newID_ref$newID)) %>%
   mutate(Day_median = case_when(grepl("Constant", ChosenModel) ~ 0,
                                 grepl("Linear", ChosenModel) ~ 1,
                                 ChosenModel == "Non-linear diurnal" ~ phi_median_Day,
